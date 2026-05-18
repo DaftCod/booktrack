@@ -1,0 +1,49 @@
+using BookTrack.Application;
+using BookTrack.Infrastructure;
+using OpenTelemetry.Resources;
+using OpenTelemetry.Trace;
+using Serilog;
+
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console()
+    .CreateBootstrapLogger();
+
+try
+{
+    var builder = WebApplication.CreateBuilder(args);
+
+    builder.Host.UseSerilog((ctx, lc) => lc
+        .ReadFrom.Configuration(ctx.Configuration)
+        .Enrich.FromLogContext());
+
+    builder.Services
+        .AddOpenTelemetry()
+        .ConfigureResource(r => r.AddService(
+            serviceName: "BookTrack.Api",
+            serviceVersion: typeof(BookTrack.Api.AssemblyReference).Assembly.GetName().Version?.ToString() ?? "0.0.0"))
+        .WithTracing(t => t
+            .AddAspNetCoreInstrumentation()
+            .AddHttpClientInstrumentation()
+            .AddOtlpExporter(o =>
+                o.Endpoint = new Uri(
+                    builder.Configuration["Telemetry:OtlpEndpoint"] ?? "http://localhost:4317")));
+
+    builder.Services.AddHealthChecks();
+    builder.Services.AddApplication();
+    builder.Services.AddInfrastructure(builder.Configuration);
+
+    var app = builder.Build();
+
+    app.UseSerilogRequestLogging();
+    app.MapHealthChecks("/health");
+
+    app.Run();
+}
+catch (Exception ex) when (ex is not HostAbortedException)
+{
+    Log.Fatal(ex, "Application terminated unexpectedly");
+}
+finally
+{
+    Log.CloseAndFlush();
+}
