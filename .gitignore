@@ -1,0 +1,35 @@
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Build results
+bin/
+obj/
+
+# NuGet
+packages/
+*.nupkg
+.nuget/
+
+# Rider
+.idea/
+*.sln.iml
+
+# Azure Functions
+.local.settings.json
+
+# User-specific files
+*.swp
+*.DS_Store
+*.class
+*.pyc
+*.pyo
+
+# VS Code
+.vscode/
+
+# Claude workspace
+.claude/
