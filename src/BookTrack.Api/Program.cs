@@ -1,5 +1,8 @@
+using BookTrack.Api.Endpoints;
 using BookTrack.Application;
 using BookTrack.Infrastructure;
+using BookTrack.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using Serilog;
@@ -28,14 +31,28 @@ try
                 o.Endpoint = new Uri(
                     builder.Configuration["Telemetry:OtlpEndpoint"] ?? "http://localhost:4317")));
 
+    builder.Services.AddCors(options =>
+        options.AddDefaultPolicy(policy =>
+            policy.SetIsOriginAllowed(_ => true)
+                  .AllowAnyHeader()
+                  .AllowAnyMethod()));
+
     builder.Services.AddHealthChecks();
     builder.Services.AddApplication();
     builder.Services.AddInfrastructure(builder.Configuration);
 
     var app = builder.Build();
 
+    using (var scope = app.Services.CreateScope())
+    {
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        await db.Database.MigrateAsync();
+    }
+
+    app.UseCors();
     app.UseSerilogRequestLogging();
     app.MapHealthChecks("/health");
+    app.MapBooksEndpoints();
 
     app.Run();
 }
