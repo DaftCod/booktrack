@@ -9,6 +9,9 @@ services:
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=booktrack;Username=booktrack;Password=booktrack"
       Telemetry__OtlpEndpoint: "http://jaeger:4317"
+      Jwt__Secret: "booktrack-docker-jwt-secret-key-minimum-32-chars!"
+      Jwt__Issuer: "BookTrack"
+      Jwt__Audience: "BookTrack"
     depends_on:
       postgres:
         condition: service_healthy

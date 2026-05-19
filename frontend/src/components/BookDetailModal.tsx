@@ -1,17 +1,43 @@
 import { useState } from 'react'
-import { X, BookOpen, Calendar, BookMarked } from 'lucide-react'
+import { X, BookOpen, Calendar, BookMarked, Plus, Minus, Loader } from 'lucide-react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { BookDto } from '../types/book'
+import type { ReadingStatus } from '../types/userBook'
+import { ReadingStatusLabel } from '../types/userBook'
+import { addUserBook, removeUserBook } from '../api/userBooks'
 import GenreBadge from './GenreBadge'
 import StarRating from './StarRating'
+import { useAuth } from '../contexts/AuthContext'
 
 interface BookDetailModalProps {
   book: BookDto
   onClose: () => void
+  inLibrary?: boolean
+  currentStatus?: ReadingStatus
 }
 
-export default function BookDetailModal({ book, onClose }: BookDetailModalProps) {
+export default function BookDetailModal({ book, onClose, inLibrary, currentStatus }: BookDetailModalProps) {
   const [imgError, setImgError] = useState(false)
+  const [status, setStatus] = useState<ReadingStatus>(currentStatus ?? 0)
   const coverSrc = !imgError && book.coverImageUrl ? book.coverImageUrl : null
+  const { user } = useAuth()
+  const qc = useQueryClient()
+
+  const addMutation = useMutation({
+    mutationFn: () => addUserBook(book.id, status),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['userBooks'] })
+      onClose()
+    },
+  })
+
+  const removeMutation = useMutation({
+    mutationFn: () => removeUserBook(book.id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['userBooks'] })
+      onClose()
+    },
+  })
 
   return (
     <div
@@ -29,8 +55,7 @@ export default function BookDetailModal({ book, onClose }: BookDetailModalProps)
           <X className="h-4 w-4 text-bt-muted" />
         </button>
 
-        <div className="flex flex-col sm:flex-row gap-0">
-          {/* Cover */}
+        <div className="flex flex-col sm:flex-row">
           <div className="sm:w-48 flex-shrink-0 bg-bt-surface">
             {coverSrc ? (
               <img
@@ -46,7 +71,6 @@ export default function BookDetailModal({ book, onClose }: BookDetailModalProps)
             )}
           </div>
 
-          {/* Details */}
           <div className="flex-1 p-6 flex flex-col gap-4">
             <div>
               <h2 className="text-xl font-bold text-bt-text leading-tight">{book.title}</h2>
@@ -64,9 +88,7 @@ export default function BookDetailModal({ book, onClose }: BookDetailModalProps)
             </div>
 
             {book.description && (
-              <p className="text-sm text-bt-muted leading-relaxed line-clamp-3">
-                {book.description}
-              </p>
+              <p className="text-sm text-bt-muted leading-relaxed line-clamp-3">{book.description}</p>
             )}
 
             <div className="flex flex-wrap gap-4 text-xs text-bt-muted">
@@ -87,9 +109,49 @@ export default function BookDetailModal({ book, onClose }: BookDetailModalProps)
               )}
             </div>
 
-            <button className="mt-auto w-full bg-bt-purple hover:bg-bt-violet text-white text-sm font-medium py-2.5 rounded-xl transition-colors">
-              Add to Library
-            </button>
+            <div className="mt-auto flex flex-col gap-2">
+              {!user ? (
+                <p className="text-xs text-center text-bt-muted py-2">Sign in to add to your library</p>
+              ) : inLibrary ? (
+                <div className="flex gap-2">
+                  <div className="flex-1 bg-bt-surface border border-bt-purple/40 rounded-xl px-3 py-2.5 text-sm text-bt-purple font-medium">
+                    {ReadingStatusLabel[currentStatus ?? 0]}
+                  </div>
+                  <button
+                    onClick={() => removeMutation.mutate()}
+                    disabled={removeMutation.isPending}
+                    className="bg-red-900/30 hover:bg-red-900/50 border border-red-800/40 text-red-400 text-sm px-3 py-2.5 rounded-xl transition-colors disabled:opacity-50 flex items-center gap-1.5"
+                  >
+                    {removeMutation.isPending
+                      ? <Loader className="h-4 w-4 animate-spin" />
+                      : <Minus className="h-4 w-4" />}
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <select
+                    value={status}
+                    onChange={e => setStatus(Number(e.target.value) as ReadingStatus)}
+                    className="flex-1 bg-bt-surface border border-bt-border text-bt-text text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:border-bt-purple cursor-pointer"
+                  >
+                    {([0, 1, 2] as ReadingStatus[]).map(s => (
+                      <option key={s} value={s}>{ReadingStatusLabel[s]}</option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={() => addMutation.mutate()}
+                    disabled={addMutation.isPending}
+                    className="flex-1 bg-bt-purple hover:bg-bt-violet disabled:opacity-50 text-white text-sm font-medium py-2.5 rounded-xl transition-colors flex items-center justify-center gap-2"
+                  >
+                    {addMutation.isPending
+                      ? <Loader className="h-4 w-4 animate-spin" />
+                      : <Plus className="h-4 w-4" />}
+                    Add to Library
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

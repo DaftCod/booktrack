@@ -1,9 +1,17 @@
 import { useMemo, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import axios from 'axios'
 import { fetchBooks } from '../api/books'
+import { fetchUserBooks } from '../api/userBooks'
+import { useAuth } from '../contexts/AuthContext'
 import BookCard from '../components/BookCard'
 import BookDetailModal from '../components/BookDetailModal'
 import type { BookDto } from '../types/book'
+import type { ReadingStatus } from '../types/userBook'
+
+interface BrowsePageProps {
+  searchQuery: string
+}
 
 const SORT_OPTIONS = [
   { value: 'title', label: 'Title' },
@@ -11,14 +19,32 @@ const SORT_OPTIONS = [
   { value: 'year', label: 'Year' },
 ]
 
-export default function BrowsePage() {
+export default function BrowsePage({ searchQuery }: BrowsePageProps) {
   const [selectedGenre, setSelectedGenre] = useState<string | null>(null)
   const [sortBy, setSortBy] = useState('rating')
   const [selectedBook, setSelectedBook] = useState<BookDto | null>(null)
+  const { user, isAdmin } = useAuth()
+  const qc = useQueryClient()
 
   const { data: books = [], isLoading, isError } = useQuery({
     queryKey: ['books'],
     queryFn: fetchBooks,
+  })
+
+  const { data: userBooks = [] } = useQuery({
+    queryKey: ['userBooks'],
+    queryFn: fetchUserBooks,
+    enabled: !!user,
+  })
+
+  const libraryMap = useMemo(
+    () => new Map(userBooks.map(ub => [ub.bookId, ub.status as ReadingStatus])),
+    [userBooks]
+  )
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => axios.delete(`/api/books/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['books'] }),
   })
 
   const genres = useMemo(
@@ -27,37 +53,36 @@ export default function BrowsePage() {
   )
 
   const filtered = useMemo(() => {
-    let list = selectedGenre
-      ? books.filter(b => b.genres.some(g => g.name === selectedGenre))
-      : books
+    let list = books
+    if (selectedGenre) list = list.filter(b => b.genres.some(g => g.name === selectedGenre))
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase()
+      list = list.filter(b =>
+        b.title.toLowerCase().includes(q) ||
+        b.authors.some(a => a.fullName.toLowerCase().includes(q))
+      )
+    }
     return [...list].sort((a, b) => {
       if (sortBy === 'rating') return b.averageRating - a.averageRating
       if (sortBy === 'year') return (b.publishedYear ?? 0) - (a.publishedYear ?? 0)
       return a.title.localeCompare(b.title)
     })
-  }, [books, selectedGenre, sortBy])
+  }, [books, selectedGenre, searchQuery, sortBy])
 
   return (
     <>
-      {/* Hero */}
       <div className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-bt-purple/20 via-transparent to-transparent pointer-events-none" />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
-          <h1 className="text-3xl sm:text-4xl font-bold text-bt-text">
-            Discover Your Next Read
-          </h1>
+          <h1 className="text-3xl sm:text-4xl font-bold text-bt-text">Discover Your Next Read</h1>
           <p className="mt-2 text-bt-muted text-lg">
-            {books.length > 0
-              ? `${books.length} books in the library`
-              : 'Your personal reading universe'}
+            {books.length > 0 ? `${books.length} books in the library` : 'Your personal reading universe'}
           </p>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-16">
-        {/* Filters row */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
-          {/* Genre filters */}
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => setSelectedGenre(null)}
@@ -84,7 +109,6 @@ export default function BrowsePage() {
             ))}
           </div>
 
-          {/* Sort */}
           <select
             value={sortBy}
             onChange={e => setSortBy(e.target.value)}
@@ -96,7 +120,6 @@ export default function BrowsePage() {
           </select>
         </div>
 
-        {/* States */}
         {isLoading && (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {Array.from({ length: 10 }, (_, i) => (
@@ -124,25 +147,36 @@ export default function BrowsePage() {
           </div>
         )}
 
-        {/* Book grid */}
         {!isLoading && !isError && filtered.length > 0 && (
           <>
             <p className="text-xs text-bt-muted mb-4">
               {filtered.length} {filtered.length === 1 ? 'book' : 'books'}
               {selectedGenre ? ` in ${selectedGenre}` : ''}
+              {searchQuery ? ` matching "${searchQuery}"` : ''}
             </p>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
               {filtered.map(book => (
-                <BookCard key={book.id} book={book} onClick={setSelectedBook} />
+                <BookCard
+                  key={book.id}
+                  book={book}
+                  inLibrary={libraryMap.has(book.id)}
+                  isAdmin={isAdmin}
+                  onClick={setSelectedBook}
+                  onDelete={id => deleteMutation.mutate(id)}
+                />
               ))}
             </div>
           </>
         )}
       </div>
 
-      {/* Detail modal */}
       {selectedBook && (
-        <BookDetailModal book={selectedBook} onClose={() => setSelectedBook(null)} />
+        <BookDetailModal
+          book={selectedBook}
+          onClose={() => setSelectedBook(null)}
+          inLibrary={libraryMap.has(selectedBook.id)}
+          currentStatus={libraryMap.get(selectedBook.id)}
+        />
       )}
     </>
   )
