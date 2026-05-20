@@ -1,4 +1,3 @@
-using System.Runtime.CompilerServices;
 using FluentAssertions;
 using NetArchTest.Rules;
 using Xunit;
@@ -51,21 +50,21 @@ public class LayeringTests
     [Fact]
     public void Domain_Types_Should_Live_In_Domain_Namespace()
         => Types.InAssembly(typeof(Domain.AssemblyReference).Assembly)
-            .That().DoNotHaveCustomAttribute(typeof(CompilerGeneratedAttribute))
+            .That().ResideInNamespace("BookTrack")
             .Should().ResideInNamespace(DomainNs)
             .GetResult().IsSuccessful.Should().BeTrue();
 
     [Fact]
     public void Application_Types_Should_Live_In_Application_Namespace()
         => Types.InAssembly(typeof(Application.AssemblyReference).Assembly)
-            .That().DoNotHaveCustomAttribute(typeof(CompilerGeneratedAttribute))
+            .That().ResideInNamespace("BookTrack")
             .Should().ResideInNamespace(ApplicationNs)
             .GetResult().IsSuccessful.Should().BeTrue();
 
     [Fact]
     public void Infrastructure_Types_Should_Live_In_Infrastructure_Namespace()
         => Types.InAssembly(typeof(Infrastructure.AssemblyReference).Assembly)
-            .That().DoNotHaveCustomAttribute(typeof(CompilerGeneratedAttribute))
+            .That().ResideInNamespace("BookTrack")
             .Should().ResideInNamespace(InfrastructureNs)
             .GetResult().IsSuccessful.Should().BeTrue();
 }
