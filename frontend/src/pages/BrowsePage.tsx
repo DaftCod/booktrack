@@ -7,7 +7,6 @@ import { useAuth } from '../contexts/AuthContext'
 import BookCard from '../components/BookCard'
 import BookDetailModal from '../components/BookDetailModal'
 import type { BookDto } from '../types/book'
-import type { UserBookDto } from '../types/userBook'
 
 interface BrowsePageProps {
   searchQuery: string
