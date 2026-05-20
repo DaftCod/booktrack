@@ -33,3 +33,8 @@ packages/
 
 # Claude workspace
 .claude/
+
+# Node
+node_modules/
+dist/
+.env.local

@@ -1,0 +1,250 @@
+# Project: Personal Library Manager
+
+## What We're Building
+
+A web application for managing a personal book library. The domain is intentionally familiar so that the focus stays on demonstrating each architectural pattern cleanly, without fighting business complexity.
+
+### Core Features
+- Book catalog with authors and tags
+- Reading status per book: `Reading`, `Read`, `WantToRead`
+- Full-text search across titles, authors, and tags
+- User-assigned ratings (1–5)
+- Cover image import by ISBN via an external API (Open Library or Google Books)
+- User accounts with personal libraries
+
+### Out of Scope (for now)
+- Social features (following, sharing, public profiles)
+- Recommendations / ML
+- Mobile native apps
+- Multi-language UI (English only for the first release)
+
+---
+
+## Stack
+
+### Backend
+- **.NET 9** with ASP.NET Core
+- **EF Core 9** with **PostgreSQL** as the system of record
+- **Elasticsearch** for full-text search
+- **Redis** for response caching and rate limiting
+- **MediatR** for CQRS (commands and queries)
+- **FluentValidation** for input validation
+- **ErrorOr** (or an equivalent Result type) for error handling — **no exceptions for expected error flows**
+- **Serilog** for structured logging
+- **OpenTelemetry** for traces, exported to **Jaeger**
+
+### Frontend
+- **React + TypeScript + Vite**
+- **Tailwind CSS + shadcn/ui** for design system
+- **TanStack Query** for server state
+- **React Hook Form + Zod** for forms and validation
+- **React Router** for routing
+
+### Auth
+- **ASP.NET Core Identity** as the user store
+- **JWT access tokens** (short-lived) + **refresh tokens** stored in **httpOnly, Secure, SameSite cookies**
+- Refresh tokens are persisted server-side and revocable
+
+### Testing
+- **xUnit + FluentAssertions** for all .NET tests
+- **Testcontainers** for integration tests — real Postgres, Elasticsearch, and Redis in Docker, no in-memory substitutes
+- **Moq** (or NSubstitute — pick one and stick with it) for unit tests of handlers
+- **Vitest + Testing Library** for frontend
+- **Playwright** for end-to-end critical flows
+
+### Infrastructure
+- `docker-compose.yml` bringing up: API, Postgres, Elasticsearch, Redis, frontend, Jaeger
+- **Multi-stage Dockerfile** for the API (and a separate one for the frontend)
+- **GitHub Actions** pipeline: `lint → test → docker build → push`
+- Images tagged with commit SHA; `latest` only on tagged releases
+
+---
+
+## Architecture
+
+### Clean Architecture, Four Projects
+```
+src/
+├── Library.Domain/           ← entities, value objects, domain errors. No dependencies.
+├── Library.Application/      ← use cases (MediatR handlers), validators, abstractions.
+│                               Depends on Domain only.
+├── Library.Infrastructure/   ← EF Core, Elasticsearch, Redis, external API clients,
+│                               Identity. Depends on Application + Domain.
+└── Library.Api/              ← ASP.NET Core host, controllers/minimal APIs, DI wiring,
+                                middleware. Depends on all the above.
+```
+
+### Layering Rules (enforced by architecture tests using NetArchTest)
+- `Domain` has zero project references and zero third-party references except `ErrorOr`.
+- `Application` references `Domain` only. No EF Core, no HTTP, no Elasticsearch types here.
+- `Infrastructure` implements the abstractions defined in `Application`.
+- `Api` is thin: parse → mediate → return. No business logic.
+
+### CQRS via MediatR
+- Commands return `ErrorOr<TResult>` (or `ErrorOr<Success>` when there is no payload).
+- Queries return `ErrorOr<TDto>`.
+- Each handler lives in its own file under `Application/Features/<Feature>/<Action>/`.
+- Pipeline behaviors: `ValidationBehavior` (FluentValidation), `LoggingBehavior`, `TransactionBehavior` for commands.
+
+### Error Handling — Result Pattern, Not Exceptions
+- Expected failures (validation, not-found, conflicts, unauthorized) flow through `ErrorOr`.
+- Exceptions are reserved for *unexpected* failures (infrastructure outages, bugs).
+- A global exception middleware maps unhandled exceptions to `ProblemDetails (500)`.
+- Handlers map `ErrorOr` results to appropriate status codes at the API edge via a small `ToActionResult()` extension.
+
+### Search
+- Elasticsearch is the read model for search only.
+- Postgres remains the source of truth.
+- Changes are projected to Elasticsearch via an outbox pattern (table in Postgres → background worker → ES).
+- Do **not** do dual writes from handlers.
+
+### Caching
+- Redis caches read-heavy queries (book lists, individual book details).
+- Cache keys are versioned per user (`user:{id}:books:v1`).
+- Invalidation on writes is explicit, not TTL-only.
+
+### Rate Limiting
+- Built on ASP.NET Core's `RateLimiter` middleware backed by Redis for distributed counters.
+- Per-user limits on write endpoints; per-IP limits on auth endpoints.
+
+---
+
+## Conventions
+
+### Code
+- C# 13, nullable reference types **on**, implicit usings on, warnings as errors.
+- Async all the way; every I/O method takes a `CancellationToken`.
+- Records for DTOs and value objects; classes for entities.
+- `AsNoTracking()` on all read queries.
+- No `SELECT *` equivalents — always project to DTOs in query handlers.
+
+### Naming
+- Commands: `<Verb><Entity>Command` (e.g. `AddBookCommand`).
+- Queries: `Get<Entity>(s)Query` or `Search<Entity>Query`.
+- Handlers: `<Command/Query>Handler`.
+- Validators: `<Command/Query>Validator`.
+- DTOs: `<Entity>Dto`, `<Entity>SummaryDto`, `<Entity>DetailsDto`.
+
+### Database
+- All timestamps `timestamptz`, stored in UTC.
+- Primary keys: `uuid v7` (sortable) generated in the application.
+- Every table has `created_at`, `updated_at`, and a `xmin`-based concurrency token where relevant.
+- Foreign keys enforced; `ON DELETE` behavior explicit per relationship.
+- Migrations are forward-only in non-local environments. Destructive changes follow expand-contract.
+
+### API
+- REST with resource-oriented URLs (`/api/v1/books`, `/api/v1/books/{id}/tags`).
+- Versioned via URL segment from day one.
+- All responses use `ProblemDetails` for errors (RFC 7807).
+- OpenAPI spec generated and committed under `/docs/openapi/`.
+- Frontend types generated from the OpenAPI spec via NSwag or openapi-typescript.
+
+### Frontend
+- Feature folders, not type folders.
+- All async views must handle `loading`, `empty`, `error`, and `success`.
+- Forms use React Hook Form + Zod with schemas in a sibling `*.schema.ts` file.
+- API calls go through generated typed clients; never raw `fetch` for documented endpoints.
+- Tailwind classes only; no inline styles, no ad-hoc CSS files beyond globals.
+
+---
+
+## Repository Layout
+
+```
+.
+├── .agents/                  ← agent prompts (architecture, backend, frontend, ...)
+│   └── settings/             ← per-agent Claude Code settings files
+├── .claude/
+│   └── settings.json
+├── .github/
+│   └── workflows/
+├── docs/
+│   ├── adr/                  ← Architecture Decision Records
+│   ├── openapi/              ← generated OpenAPI specs
+│   └── diagrams/             ← C4 diagrams (Mermaid)
+├── src/
+│   ├── Library.Domain/
+│   ├── Library.Application/
+│   ├── Library.Infrastructure/
+│   └── Library.Api/
+├── tests/
+│   ├── Library.Domain.Tests/
+│   ├── Library.Application.Tests/
+│   ├── Library.Infrastructure.Tests/
+│   ├── Library.Api.Tests/
+│   └── Library.Architecture.Tests/
+├── frontend/
+│   ├── src/
+│   ├── tests/
+│   └── e2e/
+├── docker/
+│   ├── api.Dockerfile
+│   ├── frontend.Dockerfile
+│   └── docker-compose.yml
+└── CLAUDE.md
+```
+
+---
+
+## Agent Routing
+
+This project uses specialized agent prompts under `.agents/`. Read the relevant prompt before working on that area:
+
+- Architectural decisions, ADRs, layering questions → `.agents/architecture.md`
+- API, handlers, domain, infrastructure code → `.agents/backend.md`
+- React UI, components, frontend state → `.agents/frontend.md`
+- Schema, migrations, EF Core configuration, indexes, queries → `.agents/database.md`
+- Unit and integration tests → `.agents/test-unit-integration.md`
+- E2E (Playwright) and performance tests → `.agents/test-e2e-performance.md`
+- Dockerfiles, docker-compose, GitHub Actions, deployment → `.agents/cicd.md`
+
+When a task crosses boundaries (e.g., adding a new endpoint that needs a schema change and tests), follow the handoff order:
+1. **Architecture** approves the approach if it touches cross-cutting concerns or layering.
+2. **Database** designs the schema and migration.
+3. **Backend** implements the use case.
+4. **Frontend** consumes the new endpoint.
+5. **Test agents** verify behavior at the right level.
+6. **CI/CD** ensures the pipeline still passes.
+
+---
+
+## Definition of Done for Any Feature
+
+- [ ] Architecture tests pass (NetArchTest enforces layering).
+- [ ] Unit tests cover handler logic; integration tests cover the endpoint end-to-end with Testcontainers.
+- [ ] OpenAPI spec regenerated and committed.
+- [ ] Frontend types regenerated; UI handles loading/empty/error/success.
+- [ ] Migration applied cleanly to a fresh database; rollback plan documented.
+- [ ] Tracing spans visible in Jaeger for the new path.
+- [ ] Structured logs include correlation ID and relevant context (no PII).
+- [ ] Docker compose still brings the full stack up cleanly.
+- [ ] GitHub Actions pipeline green.
+- [ ] No new analyzer warnings; `dotnet format --verify-no-changes` passes.
+
+---
+
+## Getting Started Tasks (suggested order)
+
+1. **Scaffolding** — create the four backend projects, the test projects, the frontend with Vite, and the `docker-compose.yml`. Wire up Serilog, OpenTelemetry → Jaeger, and a `/health` endpoint. Get `docker compose up` working end-to-end with an empty API.
+2. **Architecture tests** — add NetArchTest rules enforcing the layering described above. These should fail loudly if anyone introduces a forbidden reference.
+3. **Identity + auth** — ASP.NET Core Identity with Postgres store, JWT issuance, refresh-token rotation with httpOnly cookies, `/api/v1/auth/register`, `/login`, `/refresh`, `/logout`.
+4. **First vertical slice** — `AddBookCommand` end-to-end: handler, validator, migration, integration test, OpenAPI, frontend page with a form. This becomes the template for every other feature.
+5. **Search read model** — outbox table, background worker projecting to Elasticsearch, `SearchBooksQuery` reading from ES.
+6. **Caching + rate limiting** — Redis-backed, applied to the book listing endpoint and auth endpoints respectively.
+7. **ISBN cover import** — external API client with Polly retry + circuit breaker, queued as a background job.
+8. **CI/CD pipeline** — lint, test (unit + integration via Testcontainers), build images, push to registry on `main`.
+
+Each step ends with a working `docker compose up` and a green test suite.
+
+---
+
+## What to Ask Before Starting Work
+
+If the task description is ambiguous, ask before coding. Examples:
+
+- "Is this a read or write path? Should it cache?"
+- "Does this need to be searchable? If so, the outbox + ES projection applies."
+- "What's the authorization model — is this per-user data, admin, or public?"
+- "Should this surface in the OpenAPI spec? (It should, unless it's an internal health/admin endpoint.)"
+
+Never assume. A two-line clarification beats a refactor.
