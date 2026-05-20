@@ -13,9 +13,9 @@
 
 ## Screenshots
 
-| Browse Catalog | Book Detail | My Library |
+| Browse Catalog | My Library | Library Stats |
 |---|---|---|
-| ![Browse](docs/screenshots/browse.png) | ![Detail](docs/screenshots/detail.png) | ![Library](docs/screenshots/library.png) |
+| ![Browse](docs/screenshots/browse.png) | ![Library](docs/screenshots/library.png) | ![Stats](docs/screenshots/stats.png) |
 
 ---
 
@@ -221,25 +221,6 @@ docker compose up -d
 | Elasticsearch | http://localhost:9200 |
 
 The API auto-applies EF Core migrations and seeds an admin account on first start.
-
-### Default accounts
-
-| Role | Username | Password |
-|---|---|---|
-| Admin | `admin` | `Admin1234!` |
-| Guest | `guest` | `Guest1234!` |
-
-### Database access
-
-Connect with any PostgreSQL client (e.g. pgAdmin, DBeaver, `psql`):
-
-| Field | Value |
-|---|---|
-| Host | `localhost` |
-| Port | `5432` |
-| Database | `booktrack` |
-| Username | `booktrack` |
-| Password | `booktrack` |
 
 ---
 
