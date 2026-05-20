@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using BookTrack.Application.UserBooks.Commands.AddUserBook;
+using BookTrack.Application.UserBooks.Commands.RateUserBook;
 using BookTrack.Application.UserBooks.Commands.RemoveUserBook;
 using BookTrack.Application.UserBooks.Queries.GetUserBooks;
 using BookTrack.Domain.Enums;
@@ -11,6 +12,7 @@ namespace BookTrack.Api.Endpoints;
 public static class UserBooksEndpoints
 {
     private sealed record AddUserBookRequest(Guid BookId, ReadingStatus Status);
+    private sealed record RateBookRequest(int Rating);
 
     public static IEndpointRouteBuilder MapUserBooksEndpoints(this IEndpointRouteBuilder app)
     {
@@ -19,6 +21,7 @@ public static class UserBooksEndpoints
         group.MapGet("/", GetUserBooksAsync);
         group.MapPost("/", AddUserBookAsync);
         group.MapDelete("/{bookId:guid}", RemoveUserBookAsync);
+        group.MapPut("/{bookId:guid}/rating", RateUserBookAsync);
 
         return app;
     }
@@ -53,6 +56,18 @@ public static class UserBooksEndpoints
             errors => errors.Exists(e => e.Type == ErrorType.NotFound)
                 ? Results.NotFound()
                 : Results.Problem());
+    }
+
+    private static async Task<IResult> RateUserBookAsync(
+        Guid bookId, RateBookRequest request, ClaimsPrincipal user, ISender sender, CancellationToken ct)
+    {
+        var userId = GetUserId(user);
+        var result = await sender.Send(new RateUserBookCommand(userId, bookId, request.Rating), ct);
+        return result.Match(
+            _ => Results.NoContent(),
+            errors => errors.Exists(e => e.Type == ErrorType.NotFound)
+                ? Results.NotFound()
+                : Results.ValidationProblem(errors.ToDictionary(e => e.Code, e => new[] { e.Description })));
     }
 
     private static Guid GetUserId(ClaimsPrincipal user)

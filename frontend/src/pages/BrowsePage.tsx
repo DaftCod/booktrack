@@ -7,7 +7,7 @@ import { useAuth } from '../contexts/AuthContext'
 import BookCard from '../components/BookCard'
 import BookDetailModal from '../components/BookDetailModal'
 import type { BookDto } from '../types/book'
-import type { ReadingStatus } from '../types/userBook'
+import type { UserBookDto } from '../types/userBook'
 
 interface BrowsePageProps {
   searchQuery: string
@@ -38,7 +38,7 @@ export default function BrowsePage({ searchQuery }: BrowsePageProps) {
   })
 
   const libraryMap = useMemo(
-    () => new Map(userBooks.map(ub => [ub.bookId, ub.status as ReadingStatus])),
+    () => new Map(userBooks.map(ub => [ub.bookId, ub])),
     [userBooks]
   )
 
@@ -175,7 +175,8 @@ export default function BrowsePage({ searchQuery }: BrowsePageProps) {
           book={selectedBook}
           onClose={() => setSelectedBook(null)}
           inLibrary={libraryMap.has(selectedBook.id)}
-          currentStatus={libraryMap.get(selectedBook.id)}
+          currentStatus={libraryMap.get(selectedBook.id)?.status}
+          currentRating={libraryMap.get(selectedBook.id)?.rating}
         />
       )}
     </>

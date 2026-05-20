@@ -30,7 +30,7 @@ internal sealed class BookRepository(AppDbContext db) : IBookRepository
 
     public async Task<BookDto> AddBookAsync(
         string title, string? isbn, int? publishedYear, string? description,
-        string? coverImageUrl, int? pageCount,
+        string? coverImageUrl, int? pageCount, double averageRating,
         IReadOnlyList<string> authorNames, IReadOnlyList<string> genreNames,
         CancellationToken cancellationToken = default)
     {
@@ -60,6 +60,7 @@ internal sealed class BookRepository(AppDbContext db) : IBookRepository
             Id = Guid.NewGuid(),
             Title = title, Isbn = isbn, PublishedYear = publishedYear,
             Description = description, CoverImageUrl = coverImageUrl, PageCount = pageCount,
+            AverageRating = averageRating,
             Authors = authors, Genres = genres,
         };
         db.Books.Add(book);

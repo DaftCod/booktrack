@@ -16,6 +16,7 @@ public static class BooksEndpoints
         string? Description,
         string? CoverImageUrl,
         int? PageCount,
+        double AverageRating,
         List<string> AuthorNames,
         List<string> GenreNames);
 
@@ -52,7 +53,7 @@ public static class BooksEndpoints
     {
         var result = await sender.Send(new AddBookCommand(
             request.Title, request.Isbn, request.PublishedYear, request.Description,
-            request.CoverImageUrl, request.PageCount,
+            request.CoverImageUrl, request.PageCount, request.AverageRating,
             request.AuthorNames ?? [], request.GenreNames ?? []), ct);
         return result.Match(
             book => Results.Created($"/api/books/{book.Id}", book),

@@ -23,6 +23,8 @@ export default function AddBookModal({ onClose }: AddBookModalProps) {
   const [results, setResults] = useState<OLDoc[]>([])
   const [searching, setSearching] = useState(false)
   const [selected, setSelected] = useState<OLDoc | null>(null)
+  const [olDescription, setOlDescription] = useState<string | null>(null)
+  const [olRating, setOlRating] = useState(0)
   const [genres, setGenres] = useState('')
   const [error, setError] = useState('')
   const qc = useQueryClient()
@@ -34,18 +36,38 @@ export default function AddBookModal({ onClose }: AddBookModalProps) {
     setResults([])
     setSelected(null)
     try {
-      const { data } = await axios.get('https://openlibrary.org/search.json', {
-        params: {
-          q: query,
-          fields: 'key,title,author_name,first_publish_year,isbn,cover_i,number_of_pages_median',
-          limit: 8,
-        },
+      const params = new URLSearchParams({
+        q: query,
+        fields: 'key,title,author_name,first_publish_year,isbn,cover_i,number_of_pages_median',
+        limit: '8',
       })
+      const res = await fetch(`https://openlibrary.org/search.json?${params}`)
+      const data = await res.json()
       setResults(data.docs ?? [])
     } catch {
       setError('Could not reach Open Library. Check your connection.')
     } finally {
       setSearching(false)
+    }
+  }
+
+  const handleSelect = async (doc: OLDoc) => {
+    setSelected(doc)
+    setOlDescription(null)
+    setOlRating(0)
+    try {
+      const [workRes, ratingRes] = await Promise.all([
+        fetch(`https://openlibrary.org${doc.key}.json`),
+        fetch(`https://openlibrary.org${doc.key}/ratings.json`),
+      ])
+      const [work, ratingData] = await Promise.all([workRes.json(), ratingRes.json()])
+      const desc = typeof work.description === 'string'
+        ? work.description
+        : (work.description?.value ?? null)
+      setOlDescription(desc)
+      setOlRating(ratingData?.summary?.average ?? 0)
+    } catch {
+      // non-fatal — book adds fine without description/rating
     }
   }
 
@@ -56,12 +78,14 @@ export default function AddBookModal({ onClose }: AddBookModalProps) {
         title: doc.title,
         isbn,
         publishedYear: doc.first_publish_year ?? null,
+        description: olDescription,
         coverImageUrl: doc.cover_i
           ? `https://covers.openlibrary.org/b/id/${doc.cover_i}-L.jpg`
           : isbn
             ? `https://covers.openlibrary.org/b/isbn/${isbn}-L.jpg`
             : null,
         pageCount: doc.number_of_pages_median ?? null,
+        averageRating: olRating,
         authorNames: doc.author_name ?? [],
         genreNames: genres.split(',').map(g => g.trim()).filter(Boolean),
       }).then(r => r.data)
@@ -89,7 +113,10 @@ export default function AddBookModal({ onClose }: AddBookModalProps) {
       >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-bt-border">
-          <h2 className="font-bold text-bt-text">Add Book to Collection</h2>
+          <div>
+            <h2 className="font-bold text-bt-text">Add Book to Catalog</h2>
+            <p className="text-[11px] text-bt-muted mt-0.5">This book will be visible to all users on the Browse page.</p>
+          </div>
           <button onClick={onClose} className="text-bt-muted hover:text-bt-text transition-colors">
             <X className="h-5 w-5" />
           </button>
@@ -120,7 +147,7 @@ export default function AddBookModal({ onClose }: AddBookModalProps) {
               {results.map(doc => (
                 <button
                   key={doc.key}
-                  onClick={() => setSelected(doc)}
+                  onClick={() => handleSelect(doc)}
                   className="flex flex-col items-center gap-2 p-2 rounded-xl border border-bt-border hover:border-bt-purple/60 bg-bt-surface hover:bg-bt-surface/80 transition-all text-left group"
                 >
                   <div className="w-full aspect-[2/3] bg-bt-card rounded overflow-hidden">
@@ -190,7 +217,7 @@ export default function AddBookModal({ onClose }: AddBookModalProps) {
 
               <div className="flex gap-2">
                 <button
-                  onClick={() => { setSelected(null); setError('') }}
+                  onClick={() => { setSelected(null); setOlDescription(null); setOlRating(0); setError('') }}
                   className="flex-1 bg-bt-surface hover:bg-bt-border border border-bt-border text-bt-muted text-sm py-2.5 rounded-xl transition-colors"
                 >
                   Back to results
@@ -203,7 +230,7 @@ export default function AddBookModal({ onClose }: AddBookModalProps) {
                   {addMutation.isPending
                     ? <Loader className="h-4 w-4 animate-spin" />
                     : <Plus className="h-4 w-4" />}
-                  Add to Collection
+                  Add to Catalog
                 </button>
               </div>
             </div>

@@ -9,3 +9,6 @@ export const addUserBook = (bookId: string, status: ReadingStatus): Promise<User
 
 export const removeUserBook = (bookId: string): Promise<void> =>
   axios.delete(`/api/user/books/${bookId}`).then(() => undefined)
+
+export const rateUserBook = (bookId: string, rating: number): Promise<void> =>
+  axios.put(`/api/user/books/${bookId}/rating`, { rating }).then(() => undefined)

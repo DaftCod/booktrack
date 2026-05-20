@@ -22,7 +22,8 @@ internal sealed class UserBookRepository(AppDbContext db) : IUserBookRepository
                     .Select(a => new AuthorDto(a.Id, a.FirstName + " " + a.LastName))
                     .ToList(),
                 ub.Status,
-                ub.AddedAt))
+                ub.AddedAt,
+                ub.Rating))
             .ToListAsync(ct);
 
     public async Task<UserBookDto> AddAsync(
@@ -51,7 +52,8 @@ internal sealed class UserBookRepository(AppDbContext db) : IUserBookRepository
                     .Select(a => new AuthorDto(a.Id, a.FirstName + " " + a.LastName))
                     .ToList(),
                 ub.Status,
-                ub.AddedAt))
+                ub.AddedAt,
+                ub.Rating))
             .FirstAsync(ct);
     }
 
@@ -76,6 +78,29 @@ internal sealed class UserBookRepository(AppDbContext db) : IUserBookRepository
         if (entry is null) return false;
         entry.Status = status;
         await db.SaveChangesAsync(ct);
+        return true;
+    }
+
+    public async Task<bool> RateAsync(Guid userId, Guid bookId, int rating, CancellationToken ct = default)
+    {
+        var entry = await db.UserBooks
+            .FirstOrDefaultAsync(ub => ub.UserId == userId && ub.BookId == bookId, ct);
+        if (entry is null) return false;
+
+        entry.Rating = Math.Clamp(rating, 1, 5);
+        await db.SaveChangesAsync(ct);
+
+        var avg = await db.UserBooks
+            .Where(ub => ub.BookId == bookId && ub.Rating.HasValue)
+            .AverageAsync(ub => (double)ub.Rating!.Value, ct);
+
+        var book = await db.Books.FindAsync([bookId], ct);
+        if (book is not null)
+        {
+            book.AverageRating = avg;
+            await db.SaveChangesAsync(ct);
+        }
+
         return true;
     }
 }

@@ -10,5 +10,6 @@ public sealed record UserBookDto(
     string? CoverImageUrl,
     IReadOnlyList<AuthorDto> Authors,
     ReadingStatus Status,
-    DateTime AddedAt
+    DateTime AddedAt,
+    int? Rating
 );

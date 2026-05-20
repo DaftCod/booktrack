@@ -11,6 +11,7 @@ public sealed record AddBookCommand(
     string? Description,
     string? CoverImageUrl,
     int? PageCount,
+    double AverageRating,
     IReadOnlyList<string> AuthorNames,
     IReadOnlyList<string> GenreNames
 ) : IRequest<ErrorOr<BookDto>>;

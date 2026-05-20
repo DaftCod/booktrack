@@ -16,6 +16,7 @@ public sealed class AddBookCommandHandler(IBookRepository repository)
             request.Description,
             request.CoverImageUrl,
             request.PageCount,
+            request.AverageRating,
             request.AuthorNames,
             request.GenreNames,
             ct);

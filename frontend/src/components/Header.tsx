@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { BookOpen, Search, User, LogOut, Plus } from 'lucide-react'
+import { BookOpen, Search, User, LogOut, Plus, Library } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import LoginModal from './LoginModal'
 
@@ -68,10 +68,12 @@ export default function Header({ page, onNavigate, searchQuery, onSearch, onAddB
             {isAdmin && (
               <button
                 onClick={onAddBook}
+                title="Add a new book to the site catalog (admin only)"
                 className="flex items-center gap-1.5 text-sm bg-bt-purple/20 hover:bg-bt-purple/30 text-bt-purple px-3 py-2 rounded-full transition-colors font-medium"
               >
-                <Plus className="h-4 w-4" />
-                <span className="hidden sm:inline">Add Book</span>
+                <Library className="h-4 w-4" />
+                <Plus className="h-3 w-3 -ml-0.5" />
+                <span className="hidden sm:inline">Add to Catalog</span>
               </button>
             )}
             {user ? (

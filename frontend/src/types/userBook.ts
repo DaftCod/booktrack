@@ -22,4 +22,5 @@ export interface UserBookDto {
   authors: AuthorDto[]
   status: ReadingStatus
   addedAt: string
+  rating: number | null
 }

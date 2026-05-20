@@ -11,6 +11,7 @@ public interface IBookRepository
         string? description,
         string? coverImageUrl,
         int? pageCount,
+        double averageRating,
         IReadOnlyList<string> authorNames,
         IReadOnlyList<string> genreNames,
         CancellationToken cancellationToken = default);
