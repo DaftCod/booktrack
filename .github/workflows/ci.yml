@@ -113,12 +113,13 @@ jobs:
       - name: Push images
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: |
-          docker tag booktrack-api:${{ github.sha }} ghcr.io/${{ github.repository }}/api:${{ github.sha }}
-          docker tag booktrack-api:${{ github.sha }} ghcr.io/${{ github.repository }}/api:latest
-          docker push ghcr.io/${{ github.repository }}/api:${{ github.sha }}
-          docker push ghcr.io/${{ github.repository }}/api:latest
+          REPO=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          docker tag booktrack-api:${{ github.sha }} ghcr.io/${REPO}/api:${{ github.sha }}
+          docker tag booktrack-api:${{ github.sha }} ghcr.io/${REPO}/api:latest
+          docker push ghcr.io/${REPO}/api:${{ github.sha }}
+          docker push ghcr.io/${REPO}/api:latest
 
-          docker tag booktrack-frontend:${{ github.sha }} ghcr.io/${{ github.repository }}/frontend:${{ github.sha }}
-          docker tag booktrack-frontend:${{ github.sha }} ghcr.io/${{ github.repository }}/frontend:latest
-          docker push ghcr.io/${{ github.repository }}/frontend:${{ github.sha }}
-          docker push ghcr.io/${{ github.repository }}/frontend:latest
+          docker tag booktrack-frontend:${{ github.sha }} ghcr.io/${REPO}/frontend:${{ github.sha }}
+          docker tag booktrack-frontend:${{ github.sha }} ghcr.io/${REPO}/frontend:latest
+          docker push ghcr.io/${REPO}/frontend:${{ github.sha }}
+          docker push ghcr.io/${REPO}/frontend:latest
