@@ -8,9 +8,9 @@ import type { ReadingStatus, UserBookDto } from '../types/userBook'
 
 const TABS: { status: ReadingStatus | 'all'; label: string }[] = [
   { status: 'all', label: 'All' },
-  { status: 0, label: 'Want to Read' },
-  { status: 1, label: 'Reading' },
-  { status: 2, label: 'Read' },
+  { status: 'WantToRead', label: 'Want to Read' },
+  { status: 'Reading', label: 'Reading' },
+  { status: 'Read', label: 'Read' },
 ]
 
 function UserBookCard({ ub, onRemove, removing }: { ub: UserBookDto; onRemove: (id: string) => void; removing: boolean }) {
@@ -76,9 +76,9 @@ export default function MyLibraryPage() {
 
   const counts = {
     all: userBooks.length,
-    0: userBooks.filter(ub => ub.status === 0).length,
-    1: userBooks.filter(ub => ub.status === 1).length,
-    2: userBooks.filter(ub => ub.status === 2).length,
+    WantToRead: userBooks.filter(ub => ub.status === 'WantToRead').length,
+    Reading: userBooks.filter(ub => ub.status === 'Reading').length,
+    Read: userBooks.filter(ub => ub.status === 'Read').length,
   }
 
   if (!user) {

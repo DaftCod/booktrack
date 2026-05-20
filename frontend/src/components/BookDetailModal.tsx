@@ -18,7 +18,7 @@ interface BookDetailModalProps {
 
 export default function BookDetailModal({ book, onClose, inLibrary, currentStatus }: BookDetailModalProps) {
   const [imgError, setImgError] = useState(false)
-  const [status, setStatus] = useState<ReadingStatus>(currentStatus ?? 0)
+  const [status, setStatus] = useState<ReadingStatus>(currentStatus ?? 'WantToRead')
   const coverSrc = !imgError && book.coverImageUrl ? book.coverImageUrl : null
   const { user } = useAuth()
   const qc = useQueryClient()
@@ -115,7 +115,7 @@ export default function BookDetailModal({ book, onClose, inLibrary, currentStatu
               ) : inLibrary ? (
                 <div className="flex gap-2">
                   <div className="flex-1 bg-bt-surface border border-bt-purple/40 rounded-xl px-3 py-2.5 text-sm text-bt-purple font-medium">
-                    {ReadingStatusLabel[currentStatus ?? 0]}
+                    {ReadingStatusLabel[currentStatus ?? 'WantToRead']}
                   </div>
                   <button
                     onClick={() => removeMutation.mutate()}
@@ -132,10 +132,10 @@ export default function BookDetailModal({ book, onClose, inLibrary, currentStatu
                 <div className="flex gap-2">
                   <select
                     value={status}
-                    onChange={e => setStatus(Number(e.target.value) as ReadingStatus)}
+                    onChange={e => setStatus(e.target.value as ReadingStatus)}
                     className="flex-1 bg-bt-surface border border-bt-border text-bt-text text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:border-bt-purple cursor-pointer"
                   >
-                    {([0, 1, 2] as ReadingStatus[]).map(s => (
+                    {(['WantToRead', 'Reading', 'Read'] as ReadingStatus[]).map(s => (
                       <option key={s} value={s}>{ReadingStatusLabel[s]}</option>
                     ))}
                   </select>
