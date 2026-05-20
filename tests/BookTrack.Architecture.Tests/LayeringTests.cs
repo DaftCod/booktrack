@@ -62,6 +62,7 @@ public class LayeringTests
     [Fact]
     public void Infrastructure_Types_Should_Live_In_Infrastructure_Namespace()
         => Types.InAssembly(typeof(Infrastructure.AssemblyReference).Assembly)
+            .That().DoNotHaveNameStartingWith("<") // exclude compiler-generated anonymous types
             .Should().ResideInNamespace(InfrastructureNs)
             .GetResult().IsSuccessful.Should().BeTrue();
 }
