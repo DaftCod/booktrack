@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { BookOpen, Trash2 } from 'lucide-react'
+import { BookOpen, Trash2, X, Check } from 'lucide-react'
 import type { BookDto } from '../types/book'
 import GenreBadge from './GenreBadge'
 import StarRating from './StarRating'
@@ -14,11 +14,23 @@ interface BookCardProps {
 
 export default function BookCard({ book, inLibrary, isAdmin, onClick, onDelete }: BookCardProps) {
   const [imgError, setImgError] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const coverSrc = !imgError && book.coverImageUrl ? book.coverImageUrl : null
 
-  const handleDelete = (e: React.MouseEvent) => {
+  const handleDeleteClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    setConfirmDelete(true)
+  }
+
+  const handleConfirm = (e: React.MouseEvent) => {
     e.stopPropagation()
     onDelete?.(book.id)
+    setConfirmDelete(false)
+  }
+
+  const handleCancel = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    setConfirmDelete(false)
   }
 
   return (
@@ -26,14 +38,38 @@ export default function BookCard({ book, inLibrary, isAdmin, onClick, onDelete }
       onClick={() => onClick?.(book)}
       className="group relative flex flex-col rounded-xl overflow-hidden bg-bt-card border border-bt-border hover:border-bt-purple/60 transition-all duration-300 hover:shadow-xl hover:shadow-bt-purple/10 hover:-translate-y-1 cursor-pointer"
     >
-      {isAdmin && (
+      {isAdmin && !confirmDelete && (
         <button
-          onClick={handleDelete}
+          onClick={handleDeleteClick}
           className="absolute top-2 left-2 z-10 opacity-0 group-hover:opacity-100 bg-red-900/80 hover:bg-red-700 text-white rounded-full p-1.5 transition-all"
-          title="Remove book"
+          title="Delete book"
         >
           <Trash2 className="h-3.5 w-3.5" />
         </button>
+      )}
+
+      {isAdmin && confirmDelete && (
+        <div
+          className="absolute inset-0 z-20 bg-black/80 flex flex-col items-center justify-center gap-2 p-3"
+          onClick={e => e.stopPropagation()}
+        >
+          <p className="text-white text-xs text-center font-medium">Delete this book?</p>
+          <p className="text-white/60 text-[10px] text-center leading-tight line-clamp-2">{book.title}</p>
+          <div className="flex gap-2 mt-1">
+            <button
+              onClick={handleCancel}
+              className="flex items-center gap-1 bg-bt-surface hover:bg-bt-border text-bt-text text-xs px-3 py-1.5 rounded-lg transition-colors"
+            >
+              <X className="h-3 w-3" /> Cancel
+            </button>
+            <button
+              onClick={handleConfirm}
+              className="flex items-center gap-1 bg-red-700 hover:bg-red-600 text-white text-xs px-3 py-1.5 rounded-lg transition-colors"
+            >
+              <Check className="h-3 w-3" /> Delete
+            </button>
+          </div>
+        </div>
       )}
 
       {inLibrary && (
