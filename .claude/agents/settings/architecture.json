@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git status)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git branch *)",
+      "Bash(tree *)",
+      "Bash(find * -type f *)",
+      "Bash(grep -r *)",
+      "Bash(rg *)",
+      "Bash(dotnet --info)",
+      "Bash(dotnet --list-sdks)",
+      "Bash(dotnet --list-runtimes)",
+      "Bash(dotnet list * package *)",
+      "Bash(dotnet list * reference *)",
+      "Bash(docker --version)",
+      "Bash(docker compose config *)"
+    ],
+    "deny": [
+      "Bash(rm -rf *)",
+      "Bash(git push *)",
+      "Bash(git reset --hard *)",
+      "Bash(dotnet ef database *)",
+      "Bash(docker compose down *)"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\USER\\Projects\\BookTrack"
+    ]
+  }
+}

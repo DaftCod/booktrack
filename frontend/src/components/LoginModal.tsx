@@ -23,8 +23,10 @@ export default function LoginModal({ onClose }: LoginModalProps) {
       else await register(username, password)
       onClose()
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { title?: string } } })?.response?.data?.title
-      setError(msg ?? 'Invalid credentials.')
+      type ApiError = { response?: { data?: { title?: string; errors?: Record<string, string[]> } } }
+      const data = (err as ApiError)?.response?.data
+      const details = data?.errors ? Object.values(data.errors).flat().join(' ') : null
+      setError(details ?? data?.title ?? 'Invalid credentials.')
     } finally {
       setLoading(false)
     }
