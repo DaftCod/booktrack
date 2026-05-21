@@ -31,8 +31,8 @@ packages/
 # VS Code
 .vscode/
 
-# Claude workspace
-.claude/
+# Claude workspace — keep local settings out of version control
+.claude/settings.local.json
 
 # Node
 node_modules/

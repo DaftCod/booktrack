@@ -1,0 +1,42 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx playwright *)",
+      "Bash(playwright *)",
+      "Bash(pwsh *playwright*)",
+      "Bash(dotnet test *)",
+      "Bash(dotnet build *)",
+      "Bash(npm *)",
+      "Bash(npx *)",
+      "Bash(pnpm *)",
+      "Bash(k6 *)",
+      "Bash(dotnet nbomber *)",
+      "Bash(dotnet benchmark *)",
+      "Bash(curl http://localhost:*)",
+      "Bash(curl https://localhost:*)",
+      "Bash(curl *.test.*)",
+      "Bash(curl *.staging.*)",
+      "Bash(docker --version)",
+      "Bash(docker compose up *)",
+      "Bash(docker compose down *)",
+      "Bash(docker compose logs *)",
+      "Bash(git status)",
+      "Bash(git diff *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git checkout *)",
+      "Bash(rg *)",
+      "Bash(grep *)"
+    ],
+    "deny": [
+      "Bash(rm -rf *)",
+      "Bash(curl *prod*)",
+      "Bash(curl *production*)",
+      "Bash(k6 run *prod*)",
+      "Bash(git push --force *)"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\USER\\Projects\\BookTrack"
+    ]
+  }
+}

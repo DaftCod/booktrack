@@ -1,0 +1,48 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dotnet ef *)",
+      "Bash(dotnet build *)",
+      "Bash(dotnet test *)",
+      "Bash(dotnet tool *)",
+      "Bash(docker --version)",
+      "Bash(docker info *)",
+      "Bash(docker compose up *)",
+      "Bash(docker compose down *)",
+      "Bash(docker compose logs *)",
+      "Bash(docker compose ps *)",
+      "Bash(docker compose exec * psql *)",
+      "Bash(docker compose exec * sqlcmd *)",
+      "Bash(docker compose exec * mongosh *)",
+      "Bash(docker compose exec * redis-cli *)",
+      "Bash(docker exec * psql *)",
+      "Bash(docker exec * sqlcmd *)",
+      "Bash(psql -h localhost *)",
+      "Bash(sqlcmd -S localhost *)",
+      "Bash(git status)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git checkout *)",
+      "Bash(git branch *)",
+      "Bash(rg *)",
+      "Bash(grep *)",
+      "Bash(tree *)"
+    ],
+    "deny": [
+      "Bash(rm -rf *)",
+      "Bash(git push --force *)",
+      "Bash(dotnet ef database update --connection *prod*)",
+      "Bash(dotnet ef database update --connection *staging*)",
+      "Bash(dotnet ef database drop *)",
+      "Bash(psql *prod*)",
+      "Bash(psql *staging*)",
+      "Bash(sqlcmd *prod*)",
+      "Bash(sqlcmd *staging*)"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\USER\\Projects\\BookTrack"
+    ]
+  }
+}
